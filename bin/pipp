@@ -1,0 +1,29 @@
+import sys
+import os
+from mpi4py import MPI
+import argparse
+from pipp.trajectory import Trajectory
+
+def main(args, comm):
+    print("pipp!!")
+    traj = Trajectory(args.Natom, comm)
+    print(args.Natom)
+    if args.xyz2npy:
+        traj.xyz2npy(args.Ntraj)
+    else:
+        traj.read_npy()
+        print(args.Ntraj)
+        print(args.xyz2npy)
+
+if __name__ == '__main__':
+    comm = MPI.COMM_WORLD
+    parser = argparse.ArgumentParser()
+    parser.add_argument("Natom", type=int, help="The number of atoms in the trajectory.")
+    parser.add_argument("-x", "--xyz2npy", help="Read the xyz files and transform xyz to npy.",
+                        action="store_true")
+    print(sys.argv)
+    parser.add_argument("--Ntraj", type=int, help="The number of frames in the trajectory.", 
+                        required=("--xyz2npy" in sys.argv) or ("-x" in sys.argv))
+    parser.add_argument("--temp", type=float, help="The temperature at which the trajectory is sampled.")
+    args = parser.parse_args()
+    main(args, comm)
