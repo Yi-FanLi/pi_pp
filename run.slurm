@@ -15,7 +15,7 @@ module purge
 module load anaconda3/2020.11
 conda activate /scratch/gpfs/yifanl/usr/licensed/anaconda3/2021.11/dpdev6
 
-#srun -np 2 lmp -in in.lammps -p 2x1 -log log -screen screen
-#srun -np 32 python pi_goh.py --id 79
-srun -np 8 python xyz2npy.py --id 102 --natom 1536 --nsamp 6001
-#srun -np 4 python fnm2f.py --id 76
+#srun -n 2 lmp -in in.lammps -p 2x1 -log log -screen screen
+#srun -n 32 python pi_goh.py --id 79
+srun -n 8 python xyz2npy.py --id 102 --natom 1536 --nsamp 6001
+#srun -n 4 python fnm2f.py --id 76
