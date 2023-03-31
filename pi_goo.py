@@ -6,9 +6,11 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--id", type=int, help="task id")
+parser.add_argument("--ndiscard", type=int, help="the number of first samples to be discarded")
+parser.add_argument("--nsamp", type=int, help="the number of samples to use for the calculation of rdf")
 args = parser.parse_args()
 
-directory = "../task"+str(args.id)+"/"
+directory = "/tigress/yifanl/Work/pimd/h2o/lammps/yixiaoc/task"+str(args.id)+"/"
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 nbeads = comm.size
@@ -19,13 +21,12 @@ coords=np.load(directory+'coords'+str(rank)+'.npy')
 types=np.load(directory+'types'+str(rank)+'.npy')
 cells=np.load(directory+'cells'+str(rank)+'.npy')
 
-ndiscard=5001
-#ndiscard=0
-nsamp=8000
+ndiscard=args.ndiscard
+nsamp=args.nsamp
+nsub=int(nsamp/10) 
 coords=coords[ndiscard:ndiscard+nsamp]
 types=types[ndiscard:ndiscard+nsamp]
 cells=cells[ndiscard:ndiscard+nsamp]
-#nsamp=coords.shape[0]
 natom=coords.shape[1]
 nO=int(natom/3)
 
@@ -33,10 +34,11 @@ t2 = time()
 if rank==0:
   print("Reading samples costs %.4f s."%(t2-t0))
 
-rcut=12
-nbin=1000
+rcut=6
+nbin=100
 dr=rcut/nbin
 r_array=np.linspace(0, rcut, num=nbin, endpoint=False)+0.5*dr
+r_array_10 = np.array([r_array for i in range(10)]).reshape(10, nbin)
 
 idx_O = np.where(types[0]==1)[0]
 coords_O = coords[:, idx_O]
@@ -63,7 +65,7 @@ for iloop in range(nloop):
   
   t3 = time()
   if rank==0:
-    print("Loop %d: computing pbc distances costs %4.f s."%(iloop, t3-t1))
+    print("Loop %d: computing pbc distances costs %.4f s."%(iloop, t3-t1))
   for ibatch in range(nbatch):
     isamp = iloop*nbatch + ibatch
     dists_array[isamp] = dist_r[ibatch][np.triu_indices(nO, 1)]
@@ -80,7 +82,9 @@ for iloop in range(nloop):
         t4 = time()
         print("Computing rdf for %d samples costs %.4f s."%(isamp+1, t4-t0))
 
-g_r_bead = g_r_array.mean(axis=0)
+g_r_bead = np.zeros([10, nbin]) 
+for isub in range(10):
+  g_r_bead[isub] = g_r_array[isub*nsub:(isub+1)*nsub].mean(axis=0)
 #if rank==0:
 #  g_r_beads=None
 g_r_beads = comm.gather(g_r_bead, root=0)
@@ -93,9 +97,9 @@ g_r_beads = comm.gather(g_r_bead, root=0)
 #r_array=hist_r[1][1:]+0.5*(hist_r[1][1]-hist_r[1][0])
 #g_r=rho_r/4/np.pi/r_array**2/dr
 if rank==0:
-  g_r = (np.array(g_r_beads, dtype="float").reshape(nbeads, nbin)).mean(axis=0)
+  g_r = (np.array(g_r_beads, dtype="float").reshape(nbeads, 10, nbin)).mean(axis=0)
   #print(g_r.shape)
-  np.save(directory+"goo.npy", np.c_[r_array, g_r])
+  np.save(directory+"goo.npy", np.c_[r_array_10.reshape(10*nbin), g_r.reshape(10*nbin)].reshape(10, nbin, 2))
   #plt.xlim(2, 7.5)
   #plt.xticks(np.arange(2, 8, 1))
   #plt.plot(r_array, g_r)
