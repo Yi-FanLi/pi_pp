@@ -31,6 +31,13 @@ for ibead in range(nbeads):
 ndiscard = 0000
 #nsamp = 10001
 nsamp = args.nsamp
+nbatch=200
+nloop=int(nsamp/nbatch)
+zmmp1 = np.zeros(nloop*nbatch)
+zmmp = np.zeros(nloop*nbatch)
+zmmpO1 = np.zeros(nloop*nbatch)
+zmmpO = np.zeros(nloop*nbatch)
+se = np.zeros(nloop*nbatch)
 directory = "../fractionation/task"+str(args.id)+"/"
 coords = np.load(directory+"coords"+str(rank)+".npy")[ndiscard:ndiscard+nsamp]
 natom = coords.shape[1]
@@ -68,12 +75,15 @@ images = np.zeros([nsamp, natom, 3])
 #Vp = np.zeros(nsamp)
 
 print("rank: %d"%(rank), coords_unmap.shape)
-xus = np.array(comm.gather(coords_unmap, root=0))
-if rank == 0:
-  xc = xus.mean(axis=0)
-else:
-  xc = None
-xc = comm.bcast(xc, root=0)
+for iloop in range(nloop):
+  samp_idx=np.arange(iloop*nbatch, (iloop+1)*nbatch)
+  coords_unmap_batch = coords_unmap[samp_idx]
+  xus = np.array(comm.gather(coords_unmap_batch, root=0))
+  if rank == 0:
+    xc = xus.mean(axis=0)
+  else:
+    xc = None
+  xc = comm.bcast(xc, root=0)
 #print(coords_unmap.shape)
 #print(xc.shape)
 
@@ -87,36 +97,38 @@ xc = comm.bcast(xc, root=0)
 #if rank == 0:
 #  print(Vp_beads)
 
-if rank == 0:
-#  print(xus.shape)
-  qnmdummy = np.fft.rfft(xus, n=nbeads, axis=0, norm="ortho")
-  #print(qnmdummy[:, 0, 0, 0])
-  qnmdummy[1:nmodes] *= 2**0.5
-  qnm[0] = qnmdummy[0].real
-  qnm[nmodes] = qnmdummy[nmodes].real
-  qnm[1:nmodes] = qnmdummy[1:nmodes].real
-  qnm[nbeads-1:nmodes:-1] = qnmdummy[1:nmodes].imag
-  #print(np.diag(lam).shape)
-  #print((qnm**2).sum(axis=3).shape)
-  #print(qnm)
-  qnm2 = ((qnm**2).sum(axis=3)).reshape(nbeads, nsamp*natom)
-  #print(qnm2.shape)
-  lamqnm2 = ((np.matmul(np.diag(lam), qnm2)).sum(axis=0)).reshape(nsamp, natom)
-  #print(wqnm2.shape)
-  zmmp1 = np.exp(-0.5*beta_np*omega_np**2*(mD-mH)*lamqnm2[:, idx_H[0]])
-  zmmp = (np.exp(-0.5*beta_np*omega_np**2*(mD-mH)*lamqnm2[:, idx_H])).mean(axis=1)
+  if rank == 0:
+  #  print(xus.shape)
+    qnmdummy = np.fft.rfft(xus, n=nbeads, axis=0, norm="ortho")
+    #print(qnmdummy[:, 0, 0, 0])
+    qnmdummy[1:nmodes] *= 2**0.5
+    qnm[0] = qnmdummy[0].real
+    qnm[nmodes] = qnmdummy[nmodes].real
+    qnm[1:nmodes] = qnmdummy[1:nmodes].real
+    qnm[nbeads-1:nmodes:-1] = qnmdummy[1:nmodes].imag
+    #print(np.diag(lam).shape)
+    #print((qnm**2).sum(axis=3).shape)
+    #print(qnm)
+    qnm2 = ((qnm**2).sum(axis=3)).reshape(nbeads, nbatch*natom)
+    #print(qnm2.shape)
+    lamqnm2 = ((np.matmul(np.diag(lam), qnm2)).sum(axis=0)).reshape(nbatch, natom)
+    #print(wqnm2.shape)
+    zmmp1[samp_idx] = np.exp(-0.5*beta_np*omega_np**2*(mD-mH)*lamqnm2[:, idx_H[0]])
+    zmmp[samp_idx] = (np.exp(-0.5*beta_np*omega_np**2*(mD-mH)*lamqnm2[:, idx_H])).mean(axis=1)
 
-  zmmpO1 = np.exp(-0.5*beta_np*omega_np**2*(mO18-mO16)*lamqnm2[:, idx_O[0]])
-  zmmpO = (np.exp(-0.5*beta_np*omega_np**2*(mO18-mO16)*lamqnm2[:, idx_O])).mean(axis=1)
+    zmmpO1[samp_idx] = np.exp(-0.5*beta_np*omega_np**2*(mO18-mO16)*lamqnm2[:, idx_O[0]])
+    zmmpO[samp_idx] = (np.exp(-0.5*beta_np*omega_np**2*(mO18-mO16)*lamqnm2[:, idx_O])).mean(axis=1)
 
-  se = 0.5*omega_np**2*(lamqnm2*mass).sum(axis=1)
-  np.save(directory+"zmmp1.npy", zmmp1)
-  np.save(directory+"zmmp.npy", zmmp)
+    se[samp_idx] = 0.5*omega_np**2*(lamqnm2*mass).sum(axis=1)
 
-  np.save(directory+"zmmpO1.npy", zmmpO1)
-  np.save(directory+"zmmpO.npy", zmmpO)
 
-  np.save(directory+"se.npy", se)
+np.save(directory+"zmmp1.npy", zmmp1)
+np.save(directory+"zmmp.npy", zmmp)
+
+np.save(directory+"zmmpO1.npy", zmmpO1)
+np.save(directory+"zmmpO.npy", zmmpO)
+
+np.save(directory+"se.npy", se)
   #print(zmmp)
   #print(se)
   #se = 0.5*(mass*((np.matmul(np.diag(lam), (qnm**2).sum(axis=3)).sum(axis=0)))).sum(axis=2)
