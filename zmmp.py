@@ -70,8 +70,7 @@ atype[nO:natom] = 1
 #coords_unmap = np.zeros([nsamp, natom, 3])
 coords_unmap = np.load(directory+"coords_unmap"+str(rank)+".npy")[ndiscard:ndiscard+nsamp]
 cells = np.load(directory+"cells"+str(rank)+".npy")[ndiscard:ndiscard+nsamp]
-qnm = np.zeros([nbeads, nsamp, natom, 3])
-images = np.zeros([nsamp, natom, 3])
+qnm = np.zeros([nbeads, nbatch, natom, 3])
 #Vp = np.zeros(nsamp)
 
 print("rank: %d"%(rank), coords_unmap.shape)
