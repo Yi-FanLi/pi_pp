@@ -1,8 +1,9 @@
 import numpy as np
 from mpi4py import MPI
-#from deepmd.infer import DeepPot
+from deepmd.infer import DeepPot
 import argparse
 
+dp = DeepPot("/pscratch/sd/y/yifanl/Work/h2o/pimd/scan_natcomm/compress.pb")
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 nbeads = comm.size
@@ -58,6 +59,11 @@ mH = 1.00794
 mD = 2.01410
 mO16 = 15.99491
 mO18 = 17.99916
+mratio = np.zeros(natom)
+mratio[idx_O] = (mO18/mO16)**0.5
+mratio[idx_H] = (mD/mH)**0.5
+mratio_bc = np.diag(mratio)+np.ones([natom, natom])-np.eye(natom)
+mratio_xc_bc = np.diag(1-mratio)+np.ones([natom, natom])-np.eye(natom)
 #if rank==0:
 #  print(mass)
 
@@ -83,6 +89,7 @@ for iloop in range(nloop):
   else:
     xc = None
   xc = comm.bcast(xc, root=0)
+  coords_sc_batch = coords_unmap_batch[:, :, None, :, :] * mratio[None, None, :, :, None] + xc[:, None, :, :] * mratio_xc_bc[None, :, :, None]
 #print(coords_unmap.shape)
 #print(xc.shape)
 

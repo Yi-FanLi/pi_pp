@@ -10,7 +10,7 @@ parser.add_argument("--natom", type=int, help="number of atoms")
 parser.add_argument("--nsamp", type=int, help="the number of samples")
 args = parser.parse_args()
 
-directory = "../task"+str(args.id)+"/"
+directory = "../fractionation/task"+str(args.id)+"/"
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 nbeads = comm.size
@@ -85,9 +85,9 @@ with open(directory+"%02d"%(rank+1)+".xyz", "r") as f:
       #print(line)
       types[i][j] = int(line[1])
       coords[i][j] = np.array(line[2:5], dtype="float")
-      vels[i][j] = np.array(line[5:8], dtype="float")
-      images[i][j] = np.array(line[8:11], dtype="int")
-      forcenms[i][j] = np.array(line[11:14], dtype="float")
+      #vels[i][j] = np.array(line[5:8], dtype="float")
+      images[i][j] = np.array(line[5:8], dtype="int")
+      forcenms[i][j] = np.array(line[8:11], dtype="float")
     coords_unmap[i] = coords[i] + images[i]*np.array([xprd, yprd, zprd])
     if i%100 == 0:
       if rank == 0:
@@ -97,7 +97,7 @@ t2 = time()
 print("Rank = %d: reading %d samples costs %.4f s.\n"%(rank, nsamp, t2-t1))
 np.save(directory+"types"+str(rank)+".npy", types)
 np.save(directory+"coords"+str(rank)+".npy", coords)
-np.save(directory+"forcenms"+str(rank)+".npy", forcenms)
-np.save(directory+"vels"+str(rank)+".npy", vels)
+#np.save(directory+"forcenms"+str(rank)+".npy", forcenms)
+#np.save(directory+"vels"+str(rank)+".npy", vels)
 np.save(directory+"coords_unmap"+str(rank)+".npy", coords_unmap)
 np.save(directory+"cells"+str(rank)+".npy", cells)
