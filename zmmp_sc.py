@@ -68,8 +68,8 @@ atype[idx_H] = 1
 
 cells = np.load(directory+"cells"+str(rank)+".npy")[ndiscard:ndiscard+nsamp]
 # if rank == 0:
-e_unscaled = np.zeros(nloop*nbatch)
-e_sc_H = np.zeros(nloop*nbatch)
+e_unscaled = np.load(directory+"pote"+str(rank)+".npy")[ndiscard:ndiscard+nsamp]
+ros(nloop*nbatch)
 e_sc_O = np.zeros(nloop*nbatch)
 
 t1 = time()
