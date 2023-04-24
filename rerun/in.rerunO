@@ -1,0 +1,19 @@
+timer 		timeout 23:30:00 every 50000
+
+variable ibead  uloop 32 pad
+units           metal
+boundary        p p p
+atom_style      atomic
+atom_modify map yes
+
+neighbor        2.0 bin
+neigh_modify    every 10 delay 0 check no
+
+read_data ../data.cubic288h2o_eqi
+
+plugin load plugin load /pscratch/sd/y/yifanl/Softwares/deepmd-kit/install-lammps-5c9480/lib/libdeepmd_lmp.so
+pair_style deepmd /pscratch/sd/y/yifanl/Work/h2o/pimd/scan_natcomm/compress.pb
+pair_coeff	* *
+
+fix pe_print all print 1 "$(step) $(pe)" append pe_Osc.${ibead} screen no title "#step pe"
+rerun ${ibead}_Osc.xyz dump x y z
