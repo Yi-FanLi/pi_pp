@@ -28,7 +28,6 @@ nevery = args.nevery
 
 ndiscard = args.ndiscard
 directory = "../task"+str(id)+"/"
-mass_type_map = np.loadtxt(directory+"mass_type_map.txt", dtype=float)
 
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
@@ -62,9 +61,6 @@ type_numbers = [type_to_atomic_number[t] for t in types0]
 atoms0.set_atomic_numbers(type_numbers)
 natom = types0.shape[0]
 ntype = np.unique(types0).shape[0]
-mass_list = np.zeros(len(types0))
-for itype in range(ntype):
-    mass_list[types0==(itype+1)] = mass_type_map[itype]
 
 d_Ti_Oc = np.empty([nbead, nframe_write, idx_Ti.shape[0], 3])
 d_Ti_Oc_bead = np.empty([nframe_write, idx_Ti.shape[0], 3])
